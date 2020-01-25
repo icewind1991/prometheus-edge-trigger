@@ -5,12 +5,12 @@ authors = ["Robin Appelman <robin@icewind.nl>"]
 edition = "2018"
 
 [dependencies]
-prometheus-edge-detector = { version = "0.1", git = "https://github.com/icewind1991/prometheus-edge-detector" }
+prometheus-edge-detector = { version = "0.1", git = "https://github.com/icewind1991/prometheus-edge-detector", default-features = false }
 mdns = { version = "0.3", git = "https://github.com/icewind1991/mdns", branch = "async_await" }
 tokio = { version = "0.2.4", features = ["macros", "time", "fs"] }
 main_error = "0.1.0"
 futures-util = "0.3.1"
-reqwest = "0.10.0"
+reqwest = { version = "0.10.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
 log = "0.4"
@@ -19,3 +19,8 @@ err-derive = "0.2.1"
 
 [dev-dependencies]
 maplit = "1.0.2"
+
+[features]
+default = ["default-tls"]
+default-tls = ["reqwest/default-tls", "prometheus-edge-detector/default-tls"]
+rustls-tls = ["reqwest/rustls-tls", "prometheus-edge-detector/rustls-tls"]
