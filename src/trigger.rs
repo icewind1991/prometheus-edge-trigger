@@ -53,7 +53,7 @@ impl TriggerManager {
     }
 
     async fn run_trigger(&self, trigger: &Trigger) -> Result<(), MainError> {
-        let delay = trigger.action.delay;
+        let delay = trigger.delay;
         let delay_duration = Duration::from_secs(delay);
         let error_delay = Duration::from_secs(15);
         loop {

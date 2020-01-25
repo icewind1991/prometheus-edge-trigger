@@ -54,7 +54,6 @@ pub struct Action {
     pub method: Method,
     pub params: HashMap<String, Parameter>,
     pub url: String,
-    pub delay: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -72,6 +71,7 @@ pub struct PrometheusConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Trigger {
     pub name: String,
+    pub delay: u64,
     pub condition: Condition,
     pub action: Action,
 }

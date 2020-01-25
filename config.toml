@@ -3,6 +3,7 @@ url = "http://astoria:9291"
 
 [[trigger]]
 name = "VR Charging"
+delay = 300
 
 [trigger.condition]
 query = "switch_state{instance=\"$instance\"}"
@@ -14,4 +15,3 @@ params.instance = { type = "mdns", service = "_switch-http._tcp.local", host = "
 method = "PUT"
 params.host = { type = "mdns", service = "_switch-http._tcp.local", host = "vr_switch" }
 url = "http://$host/off"
-delay = 300
