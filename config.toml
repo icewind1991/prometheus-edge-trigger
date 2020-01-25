@@ -1,0 +1,17 @@
+[prometheus]
+url = "http://astoria:9291"
+
+[[trigger]]
+name = "VR Charging"
+
+[trigger.condition]
+query = "switch_state{instance=\"$instance\"}"
+from = 1
+to = 0
+params.instance = { type = "mdns", service = "_switch-http._tcp.local", host = "lighthouse1" }
+
+[trigger.action]
+method = "PUT"
+params.host = { type = "mdns", service = "_switch-http._tcp.local", host = "vr_switch" }
+url = "http://$host/off"
+delay = 300

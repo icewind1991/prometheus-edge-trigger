@@ -51,7 +51,7 @@ pub struct Condition {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Action {
-    pub method: String,
+    pub method: Method,
     pub params: HashMap<String, Parameter>,
     pub url: String,
     pub delay: u64,
@@ -59,12 +59,27 @@ pub struct Action {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    pub prometheus_url: String,
+    pub prometheus: PrometheusConfig,
+    #[serde(rename = "trigger")]
     pub triggers: Vec<Trigger>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct PrometheusConfig {
+    pub url: String
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Trigger {
-    pub trigger: Condition,
+    pub name: String,
+    pub condition: Condition,
     pub action: Action,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum Method {
+    Get,
+    Put,
+    Post,
 }
