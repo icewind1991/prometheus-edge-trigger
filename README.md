@@ -26,3 +26,26 @@ params.host = { type = "mdns", service = "_switch-http._tcp.local", host = "swit
 url = "http://$host/off"
 delay = 300
 ```
+
+## Parameters
+
+To remove the need to hard code ip addresses or host names, you can configure parameters to query for an ip address and
+use it in a query or url.
+
+### MDNS
+
+ ```toml
+params.host = { type = "mdns", service = "_switch-http._tcp.local", host = "switch2" }
+ ```
+
+Will attempt to lookup a host advertising itself under the `_switch-http._tcp.local` service with host name `switch2`
+and return the ip address and port of the host.
+
+### Service
+
+```toml
+params.host = { type = "service", file = "services.json", key = "hostname", value = "switch2" }
+```
+
+Will look for a host in a json file in [prometheus' file based service discovery format](https://prometheus.io/docs/guides/file-sd/)
+for an entry containing the label `hostname` with value `switch2` and return the first target.
