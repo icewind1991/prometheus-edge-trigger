@@ -12,7 +12,10 @@ mod trigger;
 async fn main() -> Result<(), MainError> {
     env_logger::init();
 
-    if let Some(path) = std::env::args().nth(1) {
+    let mut args = std::env::args();
+    let bin = args.next().unwrap();
+
+    if let Some(path) = args.next() {
         let mut file = File::open(path).await?;
 
         let mut contents = vec![];
@@ -22,7 +25,7 @@ async fn main() -> Result<(), MainError> {
 
         Ok(trigger_manager.run_triggers().await?)
     } else {
-        println!("Usage {} config.toml", std::env::args().next().unwrap());
+        println!("Usage {} config.toml", bin);
         return Ok(());
     }
 }

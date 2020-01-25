@@ -9,6 +9,12 @@ pub enum ParameterError {
     MdnsError(#[error(source)] mdns::Error),
     #[error(display = "requested mdns host not found")]
     MdnsHostNotFound,
+    #[error(display = "error reading file: {}", _0)]
+    FilesystemError(#[error(source)] std::io::Error),
+    #[error(display = "malformed service file: {}", _0)]
+    Service(#[error(source)] serde_json::Error),
+    #[error(display = "requested service not found")]
+    ServiceNotFound,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -20,6 +26,11 @@ pub enum Parameter {
         host: String,
     },
     Value {
+        value: String,
+    },
+    Service {
+        file: String,
+        key: String,
         value: String,
     },
 }
@@ -36,7 +47,19 @@ impl Parameter {
                     None => Err(ParameterError::MdnsHostNotFound)
                 }
             }
-            Parameter::Value { value } => Ok(value.clone())
+            Parameter::Value { value } => Ok(value.clone()),
+            Parameter::Service {
+                file, key, value
+            } => {
+                let content = tokio::fs::read(file).await?;
+                let services: Vec<Service> = serde_json::from_slice(&content)?;
+                services.into_iter().find_map(|service| {
+                    service.labels.get(key)
+                        .filter(|val| *val == value)
+                        .and_then(|_| service.targets.get(0))
+                        .cloned()
+                }).ok_or(ParameterError::ServiceNotFound)
+            }
         }
     }
 }
@@ -82,4 +105,10 @@ pub enum Method {
     Get,
     Put,
     Post,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Service {
+    targets: Vec<String>,
+    labels: HashMap<String, String>,
 }

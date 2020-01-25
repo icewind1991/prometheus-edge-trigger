@@ -6,7 +6,7 @@ use futures_util::future::try_join_all;
 use std::time::{Duration, SystemTime};
 use reqwest::Client;
 use tokio::time::delay_for;
-use log::{info, warn};
+use log::{info, error};
 use err_derive::Error;
 
 pub struct TriggerManager {
@@ -70,12 +70,12 @@ impl TriggerManager {
                         Ok(Some(new_edge)) if new_edge == edge => {
                             info!("[{}] Edge still valid, triggering", trigger.name);
                             if let Err(e) = run_action(&trigger.action, &self.http_client).await {
-                                warn!("[{}]: {}", trigger.name, e);
+                                error!("[{}]: {}", trigger.name, e);
                             }
                             delay_for(delay_duration).await;
                         }
                         Err(e) => {
-                            warn!("[{}]: {}", trigger.name, e);
+                            error!("[{}]: {}", trigger.name, e);
                             delay_for(error_delay).await;
                         }
                         _ => {
@@ -88,7 +88,7 @@ impl TriggerManager {
                     delay_for(delay_duration).await;
                 }
                 Err(e) => {
-                    warn!("[{}]: {}", trigger.name, e);
+                    error!("[{}]: {}", trigger.name, e);
                     delay_for(error_delay).await;
                 }
             }
