@@ -7,7 +7,7 @@
           "instance": {
             "type": "mdns",
             "service": "_switch-http._tcp.local",
-            "name": "lighthouse1"
+            "host": "lighthouse1"
           }
         },
         "query": "switch_state{instance=\"$instance\"}",

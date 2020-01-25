@@ -17,7 +17,7 @@ pub enum ParameterError {
 pub enum Parameter {
     Mdns {
         service: String,
-        name: String,
+        host: String,
     },
     Value {
         value: String,
@@ -29,9 +29,9 @@ impl Parameter {
         match self {
             Parameter::Mdns {
                 service,
-                name
+                host
             } => {
-                match resolve_mdns(service, name).await? {
+                match resolve_mdns(service, host).await? {
                     Some(service) => Ok(format!("{}:{}", service.addr, service.port)),
                     None => Err(ParameterError::MdnsHostNotFound)
                 }
@@ -66,5 +66,5 @@ pub struct Config {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Trigger {
     pub trigger: Condition,
-    pub action: Action
+    pub action: Action,
 }

@@ -5,12 +5,20 @@ use prometheus_edge_detector::EdgeDetector;
 use futures_util::future::try_join_all;
 use std::time::{Duration, SystemTime};
 use reqwest::Client;
-
+use tokio::time::delay_for;
 
 pub struct TriggerManager {
     http_client: Client,
     edge_detector: EdgeDetector,
     triggers: Vec<Trigger>,
+}
+
+fn now() -> u64 {
+    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
+}
+
+fn since(time: u64) -> u64 {
+    now().saturating_sub(time)
 }
 
 impl TriggerManager {
@@ -24,23 +32,41 @@ impl TriggerManager {
         }
     }
 
-    pub async fn poll_triggers(&self) -> Result<(), MainError> {
-        let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-
-        for trigger in &self.triggers {
-            let delay = trigger.action.delay;
-            let query = interpolate_params(&trigger.trigger.query, &trigger.trigger.params).await?;
-            let edge = self.edge_detector.get_last_edge(&query, trigger.trigger.from, trigger.trigger.to, Duration::from_secs(delay * 2)).await?;
-
-            if let Some(edge) = edge {
-                let edge_from_now = now - edge;
-                if edge_from_now > delay && (edge_from_now - delay) < 60 {
-                    run_action(&trigger.action, &self.http_client).await?;
-                }
-            }
-        }
+    pub async fn run_triggers(&self) -> Result<(), MainError> {
+        try_join_all(self.triggers.iter().map(|trigger| {
+            self.run_trigger(trigger)
+        })).await?;
 
         Ok(())
+    }
+
+    pub async fn run_trigger(&self, trigger: &Trigger) -> Result<(), MainError> {
+        let delay = trigger.action.delay;
+        let delay_duration = Duration::from_secs(delay);
+        loop {
+            let query = interpolate_params(&trigger.trigger.query, &trigger.trigger.params).await?;
+            let edge = self.edge_detector.get_last_edge(&query, trigger.trigger.from, trigger.trigger.to, Duration::from_secs(delay + 60)).await?;
+            if let Some(edge) = edge {
+                let elapsed = since(edge);
+                let wait = delay.saturating_sub(elapsed);
+                println!("Found edge, {}s ago, waiting {}s before triggering", elapsed, wait);
+                let wait_delay = Duration::from_secs(wait);
+                delay_for(wait_delay).await;
+
+                // verify that the previously found edge is still the most recent
+                let new_edge = self.edge_detector.get_last_edge(&query, trigger.trigger.from, trigger.trigger.to, Duration::from_secs(delay + 60)).await?;
+                if new_edge == Some(edge) {
+                    println!("Edge still valid, triggering");
+                    run_action(&trigger.action, &self.http_client).await?;
+                    delay_for(delay_duration).await;
+                } else {
+                    println!("Edge no longer value");
+                }
+            } else {
+                println!("No edge found, waiting {}s before looking for new edge", delay);
+                delay_for(delay_duration).await;
+            }
+        }
     }
 }
 
