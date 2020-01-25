@@ -463,7 +463,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "mdns"
 version = "0.3.1"
-source = "git+https://github.com/icewind1991/mdns?branch=async_await#d49119fc4390f4523abb29f050f2df364db47d5a"
+source = "git+https://github.com/dylanmckay/mdns#4c40ffe893788dafa16126dd27dd5c11f338626e"
 dependencies = [
  "async-stream 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dns-parser 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -700,7 +700,7 @@ dependencies = [
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "main_error 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "maplit 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mdns 0.3.1 (git+https://github.com/icewind1991/mdns?branch=async_await)",
+ "mdns 0.3.1 (git+https://github.com/dylanmckay/mdns)",
  "prometheus-edge-detector 0.1.0 (git+https://github.com/icewind1991/prometheus-edge-detector)",
  "reqwest 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1426,7 +1426,7 @@ dependencies = [
 "checksum main_error 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3516df0fb44d98fe6d6e859d224adfb7b6686447937e5b96308d6061595eed04"
 "checksum maplit 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 "checksum matches 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "7ffc5c5338469d4d3ea17d269fa8ea3512ad247247c30bd2df69e68309ed0a08"
-"checksum mdns 0.3.1 (git+https://github.com/icewind1991/mdns?branch=async_await)" = "<none>"
+"checksum mdns 0.3.1 (git+https://github.com/dylanmckay/mdns)" = "<none>"
 "checksum memchr 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3197e20c7edb283f87c071ddfc7a2cca8f8e0b888c242959846a6fce03c72223"
 "checksum mime 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)" = "2a60c7ce501c71e03a9c9c0d35b861413ae925bd979cc7a4e30d060069aaac8d"
 "checksum mime_guess 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1a0ed03949aef72dbdf3116a383d7b38b4768e6f960528cd6a6044aa9ed68599"
