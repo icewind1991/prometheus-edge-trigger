@@ -1,7 +1,7 @@
-use main_error::MainError;
-use tokio::fs::File;
 use crate::config::Config;
 use crate::trigger::TriggerManager;
+use main_error::MainError;
+use tokio::fs::File;
 use tokio::prelude::*;
 
 mod config;

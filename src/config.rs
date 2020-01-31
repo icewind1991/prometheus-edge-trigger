@@ -1,6 +1,6 @@
-use serde::Deserialize;
-use err_derive::Error;
 use crate::mdns::resolve_mdns;
+use err_derive::Error;
+use serde::Deserialize;
 use std::collections::HashMap;
 
 #[derive(Debug, Error)]
@@ -38,27 +38,25 @@ pub enum Parameter {
 impl Parameter {
     pub async fn get_value(&self) -> Result<String, ParameterError> {
         match self {
-            Parameter::Mdns {
-                service,
-                host
-            } => {
-                match resolve_mdns(service, host).await? {
-                    Some(service) => Ok(format!("{}:{}", service.addr, service.port)),
-                    None => Err(ParameterError::MdnsHostNotFound)
-                }
-            }
+            Parameter::Mdns { service, host } => match resolve_mdns(service, host).await? {
+                Some(service) => Ok(service.to_string()),
+                None => Err(ParameterError::MdnsHostNotFound),
+            },
             Parameter::Value { value } => Ok(value.clone()),
-            Parameter::Service {
-                file, key, value
-            } => {
+            Parameter::Service { file, key, value } => {
                 let content = tokio::fs::read(file).await?;
                 let services: Vec<Service> = serde_json::from_slice(&content)?;
-                services.into_iter().find_map(|service| {
-                    service.labels.get(key)
-                        .filter(|val| *val == value)
-                        .and_then(|_| service.targets.get(0))
-                        .cloned()
-                }).ok_or(ParameterError::ServiceNotFound)
+                services
+                    .into_iter()
+                    .find_map(|service| {
+                        service
+                            .labels
+                            .get(key)
+                            .filter(|val| *val == value)
+                            .and_then(|_| service.targets.get(0))
+                            .cloned()
+                    })
+                    .ok_or(ParameterError::ServiceNotFound)
             }
         }
     }
@@ -88,7 +86,7 @@ pub struct Config {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct PrometheusConfig {
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

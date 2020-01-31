@@ -1,13 +1,13 @@
-use main_error::MainError;
-use std::collections::HashMap;
-use crate::config::{Parameter, ParameterError, Trigger, Config, Action, Method, Condition};
-use prometheus_edge_detector::EdgeDetector;
-use futures_util::future::try_join_all;
-use std::time::{Duration, SystemTime};
-use reqwest::Client;
-use tokio::time::delay_for;
-use log::{info, error};
+use crate::config::{Action, Condition, Config, Method, Parameter, ParameterError, Trigger};
 use err_derive::Error;
+use futures_util::future::try_join_all;
+use log::{error, info};
+use main_error::MainError;
+use prometheus_edge_detector::EdgeDetector;
+use reqwest::Client;
+use std::collections::HashMap;
+use std::time::{Duration, SystemTime};
+use tokio::time::delay_for;
 
 pub struct TriggerManager {
     http_client: Client,
@@ -16,7 +16,10 @@ pub struct TriggerManager {
 }
 
 fn now() -> u64 {
-    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }
 
 fn since(time: u64) -> u64 {
@@ -45,9 +48,12 @@ impl TriggerManager {
     }
 
     pub async fn run_triggers(&self) -> Result<(), MainError> {
-        try_join_all(self.triggers.iter().map(|trigger| {
-            self.run_trigger(trigger)
-        })).await?;
+        try_join_all(
+            self.triggers
+                .iter()
+                .map(|trigger| self.run_trigger(trigger)),
+        )
+        .await?;
 
         Ok(())
     }
@@ -61,7 +67,10 @@ impl TriggerManager {
                 Ok(Some(edge)) => {
                     let elapsed = since(edge);
                     let wait = delay.saturating_sub(elapsed);
-                    info!("[{}] Found edge, {}s ago, waiting {}s before triggering", trigger.name, elapsed, wait);
+                    info!(
+                        "[{}] Found edge, {}s ago, waiting {}s before triggering",
+                        trigger.name, elapsed, wait
+                    );
                     let wait_delay = Duration::from_secs(wait);
                     delay_for(wait_delay).await;
 
@@ -84,7 +93,10 @@ impl TriggerManager {
                     }
                 }
                 Ok(None) => {
-                    info!("[{}] No edge found, waiting {}s before looking for new edge", trigger.name, delay);
+                    info!(
+                        "[{}] No edge found, waiting {}s before looking for new edge",
+                        trigger.name, delay
+                    );
                     delay_for(delay_duration).await;
                 }
                 Err(e) => {
@@ -95,16 +107,31 @@ impl TriggerManager {
         }
     }
 
-    async fn get_edge(&self, condition: &Condition, delay: u64) -> Result<Option<u64>, TriggerError> {
+    async fn get_edge(
+        &self,
+        condition: &Condition,
+        delay: u64,
+    ) -> Result<Option<u64>, TriggerError> {
         let query = interpolate_params(&condition.query, &condition.params).await?;
-        Ok(self.edge_detector.get_last_edge(&query, condition.from, condition.to, Duration::from_secs(delay + 60)).await?)
+        Ok(self
+            .edge_detector
+            .get_last_edge(
+                &query,
+                condition.from,
+                condition.to,
+                Duration::from_secs(delay + 60),
+            )
+            .await?)
     }
 }
 
-async fn interpolate_params(input: &str, params: &HashMap<String, Parameter>) -> Result<String, ParameterError> {
-    let futures = params.values().map(|definition| {
-        Box::pin(definition.get_value())
-    });
+async fn interpolate_params(
+    input: &str,
+    params: &HashMap<String, Parameter>,
+) -> Result<String, ParameterError> {
+    let futures = params
+        .values()
+        .map(|definition| Box::pin(definition.get_value()));
 
     let resolved_params: Vec<String> = try_join_all(futures).await?;
     let mut result = input.to_string();
@@ -120,12 +147,15 @@ async fn interpolate_params(input: &str, params: &HashMap<String, Parameter>) ->
 async fn test_interpolate() {
     use maplit::hashmap;
 
-    let result = interpolate_params("foo_$param", &hashmap! {
-        "param".to_string() => Parameter::Value{value: "bar".to_string()}
-    }).await;
+    let result = interpolate_params(
+        "foo_$param",
+        &hashmap! {
+            "param".to_string() => Parameter::Value{value: "bar".to_string()}
+        },
+    )
+    .await;
     assert_eq!("foo_bar".to_string(), result.unwrap());
 }
-
 
 async fn run_action(action: &Action, client: &Client) -> Result<(), TriggerError> {
     let url = interpolate_params(&action.url, &action.params).await?;
