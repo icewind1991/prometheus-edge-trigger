@@ -1,4 +1,4 @@
-use crate::config::{Action, Condition, Config, Method, Parameter, ParameterError, Trigger};
+use crate::config::{Action, Condition, Config, Method, Parameter, ParameterError, Trigger, MqttConfig};
 use err_derive::Error;
 use futures_util::future::try_join_all;
 use log::{error, info};
@@ -8,9 +8,11 @@ use reqwest::Client;
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 use tokio::time::delay_for;
+use rumqttc::{MqttOptions, AsyncClient, QoS};
 
 pub struct TriggerManager {
     http_client: Client,
+    mqtt_config: Option<MqttConfig>,
     edge_detector: EdgeDetector,
     triggers: Vec<Trigger>,
 }
@@ -34,6 +36,8 @@ pub enum TriggerError {
     Edge(#[error(source)] prometheus_edge_detector::Error),
     #[error(display = "{}", _0)]
     Network(#[error(source)] reqwest::Error),
+    #[error(display = "{}", _0)]
+    Mqtt(#[error(source)] rumqttc::ClientError),
 }
 
 impl TriggerManager {
@@ -42,6 +46,7 @@ impl TriggerManager {
 
         TriggerManager {
             http_client: Client::new(),
+            mqtt_config: config.mqtt,
             edge_detector,
             triggers: config.triggers,
         }
@@ -53,7 +58,7 @@ impl TriggerManager {
                 .iter()
                 .map(|trigger| self.run_trigger(trigger)),
         )
-        .await?;
+            .await?;
 
         Ok(())
     }
@@ -78,7 +83,7 @@ impl TriggerManager {
                     match self.get_edge(&trigger.condition, delay).await {
                         Ok(Some(new_edge)) if new_edge == edge => {
                             info!("[{}] Edge still valid, triggering", trigger.name);
-                            if let Err(e) = run_action(&trigger.action, &self.http_client).await {
+                            if let Err(e) = run_action(&trigger.action, &self.http_client, self.mqtt_config.as_ref()).await {
                                 error!("[{}]: {}", trigger.name, e);
                             }
                             delay_for(delay_duration).await;
@@ -125,6 +130,16 @@ impl TriggerManager {
     }
 }
 
+async fn interpolate_option_params(
+    input: &Option<String>,
+    params: &HashMap<String, Parameter>,
+) -> Result<Option<String>, ParameterError> {
+    match input.as_ref() {
+        Some(input) => Ok(Some(interpolate_params(input, params).await?)),
+        None => Ok(None)
+    }
+}
+
 async fn interpolate_params(
     input: &str,
     params: &HashMap<String, Parameter>,
@@ -153,19 +168,41 @@ async fn test_interpolate() {
             "param".to_string() => Parameter::Value{value: "bar".to_string()}
         },
     )
-    .await;
+        .await;
     assert_eq!("foo_bar".to_string(), result.unwrap());
 }
 
-async fn run_action(action: &Action, client: &Client) -> Result<(), TriggerError> {
-    let url = interpolate_params(&action.url, &action.params).await?;
+async fn run_action(action: &Action, client: &Client, mqtt_config: Option<&MqttConfig>) -> Result<(), TriggerError> {
+    let url = interpolate_option_params(&action.url, &action.params).await?;
+    let topic = interpolate_option_params(&action.topic, &action.params).await?;
+    let payload = interpolate_option_params(&action.payload, &action.params).await?;
 
-    let req = match action.method {
-        Method::Put => client.put(&url),
-        Method::Post => client.post(&url),
-        Method::Get => client.get(&url),
+    match (action.method, url, topic, payload) {
+        (Method::Put, Some(url), _, _) => {
+            client.put(&url).send().await?;
+        },
+        (Method::Post, Some(url), _, _) => {
+            client.post(&url).send().await?;
+        }
+        (Method::Get, Some(url), _, _) => {
+            client.get(&url).send().await?;
+        }
+        (Method::Mqtt, _, Some(topic), Some(payload)) => {
+            if let Some(mqtt_config) = mqtt_config {
+                let mqtt_options = MqttOptions::new("rumqtt-async", mqtt_config.host.as_str(), mqtt_config.port.unwrap_or(1883));
+
+                let (mqtt_client, mut event_loop) = AsyncClient::new(mqtt_options, 10);
+                mqtt_client.publish(topic, QoS::AtMostOnce, false, payload).await?;
+
+                let _ = tokio::time::timeout(Duration::from_secs(1), async move {
+                    loop {
+                        let _ = event_loop.poll().await;
+                    }
+                }).await;
+            }
+        },
+        _ => {}
     };
-    req.send().await?;
 
     Ok(())
 }

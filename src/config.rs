@@ -64,6 +64,7 @@ impl Parameter {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Condition {
+    #[serde(default)]
     pub params: HashMap<String, Parameter>,
     pub query: String,
     pub from: u64,
@@ -73,13 +74,17 @@ pub struct Condition {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Action {
     pub method: Method,
+    #[serde(default)]
     pub params: HashMap<String, Parameter>,
-    pub url: String,
+    pub url: Option<String>,
+    pub topic: Option<String>,
+    pub payload: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub prometheus: PrometheusConfig,
+    pub mqtt: Option<MqttConfig>,
     #[serde(rename = "trigger")]
     pub triggers: Vec<Trigger>,
 }
@@ -90,6 +95,12 @@ pub struct PrometheusConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct MqttConfig {
+    pub host: String,
+    pub port: Option<u16>
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Trigger {
     pub name: String,
     pub delay: u64,
@@ -97,12 +108,13 @@ pub struct Trigger {
     pub action: Action,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Copy)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Method {
     Get,
     Put,
     Post,
+    Mqtt
 }
 
 #[derive(Debug, Clone, Deserialize)]

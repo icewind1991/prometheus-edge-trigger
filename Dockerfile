@@ -5,7 +5,7 @@ FROM ekidd/rust-musl-builder AS build
 ADD . ./
 RUN sudo chown -R rust:rust .
 
-RUN cargo build --release --no-default-features --features rustls-tls
+RUN cargo build --release
 
 FROM scratch
 
