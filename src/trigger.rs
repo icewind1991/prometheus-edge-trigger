@@ -38,6 +38,8 @@ pub enum TriggerError {
     Network(#[error(source)] reqwest::Error),
     #[error(display = "{}", _0)]
     Mqtt(#[error(source)] rumqttc::ClientError),
+    #[error(display = "{}", _0)]
+    Configuration(String),
 }
 
 impl TriggerManager {
@@ -180,7 +182,7 @@ async fn run_action(action: &Action, client: &Client, mqtt_config: Option<&MqttC
     match (action.method, url, topic, payload) {
         (Method::Put, Some(url), _, _) => {
             client.put(&url).send().await?;
-        },
+        }
         (Method::Post, Some(url), _, _) => {
             client.post(&url).send().await?;
         }
@@ -199,8 +201,10 @@ async fn run_action(action: &Action, client: &Client, mqtt_config: Option<&MqttC
                         let _ = event_loop.poll().await;
                     }
                 }).await;
+            } else {
+                return Err(TriggerError::Configuration("mqtt trigger configured, but no mqtt server configured".to_string()));
             }
-        },
+        }
         _ => {}
     };
 
