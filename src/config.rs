@@ -97,7 +97,9 @@ pub struct PrometheusConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct MqttConfig {
     pub host: String,
-    pub port: Option<u16>
+    pub port: Option<u16>,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -114,7 +116,7 @@ pub enum Method {
     Get,
     Put,
     Post,
-    Mqtt
+    Mqtt,
 }
 
 #[derive(Debug, Clone, Deserialize)]
