@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::trigger::TriggerManager;
 use main_error::MainError;
 use tokio::fs::File;
-use tokio::prelude::*;
+use tokio::io::AsyncReadExt;
 
 mod config;
 mod mdns;

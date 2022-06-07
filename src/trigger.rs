@@ -10,7 +10,7 @@ use reqwest::Client;
 use rumqttc::{AsyncClient, ClientError, Event, MqttOptions, Outgoing, QoS};
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
-use tokio::time::delay_for;
+use tokio::time::sleep;
 
 pub struct TriggerManager {
     http_client: Client,
@@ -81,7 +81,7 @@ impl TriggerManager {
                         trigger.name, elapsed, wait
                     );
                     let wait_delay = Duration::from_secs(wait);
-                    delay_for(wait_delay).await;
+                    sleep(wait_delay).await;
 
                     // verify that the previously found edge is still the most recent
                     match self.get_edge(&trigger.condition, delay).await {
@@ -96,11 +96,11 @@ impl TriggerManager {
                             {
                                 error!("[{}]: {}", trigger.name, e);
                             }
-                            delay_for(delay_duration).await;
+                            sleep(delay_duration).await;
                         }
                         Err(e) => {
                             error!("[{}]: {}", trigger.name, e);
-                            delay_for(error_delay).await;
+                            sleep(error_delay).await;
                         }
                         _ => {
                             info!("[{}] Edge no longer valid", trigger.name);
@@ -112,11 +112,11 @@ impl TriggerManager {
                         "[{}] No edge found, waiting {}s before looking for new edge",
                         trigger.name, delay
                     );
-                    delay_for(delay_duration).await;
+                    sleep(delay_duration).await;
                 }
                 Err(e) => {
                     error!("[{}]: {}", trigger.name, e);
-                    delay_for(error_delay).await;
+                    sleep(error_delay).await;
                 }
             }
         }
