@@ -2,6 +2,8 @@ use crate::mdns::resolve_mdns;
 use err_derive::Error;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::fs::read_to_string;
 
 #[derive(Debug, Error)]
 pub enum ParameterError {
@@ -95,11 +97,48 @@ pub struct PrometheusConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(try_from = "RawMqttConfig")]
 pub struct MqttConfig {
     pub host: String,
     pub port: Option<u16>,
     pub username: Option<String>,
     pub password: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RawMqttConfig {
+    pub host: String,
+    pub port: Option<u16>,
+    pub username: Option<String>,
+    #[serde(flatten)]
+    pub password: Option<MqttPassword>,
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(untagged)]
+pub enum MqttPassword {
+    Raw { password: String },
+    File { password_file: String },
+}
+
+impl TryFrom<RawMqttConfig> for MqttConfig {
+    type Error = std::io::Error;
+
+    fn try_from(value: RawMqttConfig) -> Result<Self, Self::Error> {
+        let password = match value.password {
+            Some(MqttPassword::Raw { password }) => Some(password),
+            Some(MqttPassword::File { password_file }) => {
+                Some(read_to_string(password_file)?.trim().to_string())
+            }
+            None => None,
+        };
+        Ok(MqttConfig {
+            host: value.host,
+            port: value.port,
+            username: value.username,
+            password,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
