@@ -1,7 +1,6 @@
 use crate::config::{
     Action, Condition, Config, Method, MqttConfig, Parameter, ParameterError, Trigger,
 };
-use err_derive::Error;
 use futures_util::future::try_join_all;
 use log::{error, info};
 use main_error::MainError;
@@ -10,6 +9,7 @@ use reqwest::Client;
 use rumqttc::{AsyncClient, ClientError, Event, MqttOptions, Outgoing, QoS};
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
+use thiserror::Error;
 use tokio::time::sleep;
 
 pub struct TriggerManager {
@@ -32,15 +32,15 @@ fn since(time: u64) -> u64 {
 
 #[derive(Debug, Error)]
 pub enum TriggerError {
-    #[error(display = "{}", _0)]
-    Parameter(#[error(source)] ParameterError),
-    #[error(display = "{}", _0)]
-    Edge(#[error(source)] prometheus_edge_detector::Error),
-    #[error(display = "{}", _0)]
-    Network(#[error(source)] reqwest::Error),
-    #[error(display = "{}", _0)]
-    Mqtt(#[error(source)] rumqttc::ClientError),
-    #[error(display = "{}", _0)]
+    #[error("{0}")]
+    Parameter(#[from] ParameterError),
+    #[error("{0}")]
+    Edge(#[from] prometheus_edge_detector::Error),
+    #[error("{0}")]
+    Network(#[from] reqwest::Error),
+    #[error("{0}")]
+    Mqtt(#[from] rumqttc::ClientError),
+    #[error("{0}")]
     Configuration(String),
 }
 

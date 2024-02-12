@@ -1,8 +1,7 @@
 use crate::config::Config;
 use crate::trigger::TriggerManager;
 use main_error::MainError;
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
+use std::fs::read_to_string;
 
 mod config;
 mod mdns;
@@ -16,11 +15,8 @@ async fn main() -> Result<(), MainError> {
     let bin = args.next().unwrap();
 
     if let Some(path) = args.next() {
-        let mut file = File::open(path).await?;
-
-        let mut contents = vec![];
-        file.read_to_end(&mut contents).await?;
-        let config: Config = toml::from_slice(&contents)?;
+        let contents = read_to_string(path)?;
+        let config: Config = toml::from_str(&contents)?;
         let trigger_manager = TriggerManager::new(config);
 
         Ok(trigger_manager.run_triggers().await?)

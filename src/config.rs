@@ -1,21 +1,21 @@
 use crate::mdns::resolve_mdns;
-use err_derive::Error;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs::read_to_string;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ParameterError {
-    #[error(display = "error while resolving mdns: {}", _0)]
-    MdnsError(#[error(source)] mdns::Error),
-    #[error(display = "requested mdns host not found")]
+    #[error("error while resolving mdns: {0}")]
+    MdnsError(#[from] mdns::Error),
+    #[error("requested mdns host not found")]
     MdnsHostNotFound,
-    #[error(display = "error reading file: {}", _0)]
-    FilesystemError(#[error(source)] std::io::Error),
-    #[error(display = "malformed service file: {}", _0)]
-    Service(#[error(source)] serde_json::Error),
-    #[error(display = "requested service not found")]
+    #[error("error reading file: {0}")]
+    FilesystemError(#[from] std::io::Error),
+    #[error("malformed service file: {0}")]
+    Service(#[from] serde_json::Error),
+    #[error("requested service not found")]
     ServiceNotFound,
 }
 
