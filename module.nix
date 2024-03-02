@@ -11,7 +11,7 @@ with lib; let
     prometheus.url = cfg.prometheusAddress;
     mqtt = {
       inherit (cfg.mqtt) host username;
-      password_file = cfg.mqtt.passwordFile;
+      password_file = "$CREDENTIALS_DIRECTORY/mqtt_password";
     };
     trigger =
       map (trigger: {
@@ -147,6 +147,9 @@ in {
 
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/prometheus-edge-trigger ${configFile}";
+        LoadCredential = [
+          "mqtt_password:${cfg.mqtt.passwordFile}"
+        ];
         Restart = "on-failure";
         DynamicUser = true;
         PrivateTmp = true;
