@@ -1,8 +1,8 @@
 use crate::mdns::resolve_mdns;
+use secretfile::{load, SecretError};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::fs::read_to_string;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -122,14 +122,12 @@ pub enum MqttPassword {
 }
 
 impl TryFrom<RawMqttConfig> for MqttConfig {
-    type Error = std::io::Error;
+    type Error = SecretError;
 
     fn try_from(value: RawMqttConfig) -> Result<Self, Self::Error> {
         let password = match value.password {
             Some(MqttPassword::Raw { password }) => Some(password),
-            Some(MqttPassword::File { password_file }) => {
-                Some(read_to_string(password_file)?.trim().to_string())
-            }
+            Some(MqttPassword::File { password_file }) => Some(load(&password_file)?),
             None => None,
         };
         Ok(MqttConfig {
