@@ -1,3 +1,5 @@
+# Moved to https://codeberg.org/icewind/prometheus-edge-trigger
+
 # Prometheus edge trigger
 
 Trigger http requests a set delay after an edge in a prometheus query.
